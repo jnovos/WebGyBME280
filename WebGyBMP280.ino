@@ -5,6 +5,7 @@
 #include <WiFiClient.h>
 #include <ESP8266WebServer.h>
 #include <ESP8266mDNS.h>
+#include <ThingSpeak.h>
 
 // assign the ESP8266 pins to arduino pins
 #define D1 5 //gpio05
@@ -37,6 +38,13 @@ ESP8266WebServer server(80);
 //Adafruit_BMP280 bmp(BMP_CS); // hardware SPI
 Adafruit_BMP280 bmp(BMP_CS, BMP_MOSI, BMP_MISO,  BMP_SCK);
 
+
+//api
+unsigned long myChannelNumber = 1193624;
+const char * myWriteAPIKey = "E5Z7SA2XWB06ML07";
+WiFiClient  client;
+
+
 void setup() {
   Serial.begin(9600);
   Serial.println(F("BMP280 test"));
@@ -61,6 +69,9 @@ void setup() {
   Serial.println(ssid);
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
+  
+  // Initialize ThingSpeak
+   ThingSpeak.begin(client);  
 
   server.on("/temp", bmp280);
   server.on("/inline", []() {
@@ -78,7 +89,20 @@ void loop() {
     temperature = bmp.readTemperature();
     pressure =bmp.readPressure()*0.01;
     altitude = bmp.readAltitude(1013.25);
-    delay(2000);
+	// set the fields with the values
+	ThingSpeak.setField(1, temperature);
+	ThingSpeak.setField(2, altitude);
+	ThingSpeak.setField(3, pressure);
+	ThingSpeak.setStatus(String("Ok...."));
+	  // write to the ThingSpeak channel
+	int x = ThingSpeak.writeFields(myChannelNumber, myWriteAPIKey);
+	if(x == 200){
+		Serial.println("Channel update successful.");
+	 }
+	 else{
+		Serial.println("Problem updating channel. HTTP error code " + String(x));
+	 }
+    delay(20000);
 }
 
 void bmp280(){
