@@ -1,1 +1,1 @@
-# WebGyBME280
+# WebGyBMP280
